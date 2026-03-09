@@ -13,6 +13,8 @@ set -euo pipefail
 
 DEPS_DIR="${VPN_EASY_LIB_DIR:-/tmp/tt-deps}"
 WINTUN_URL="https://www.wintun.net/builds/wintun-0.14.1.zip"
+WEBVIEW2_VERSION="1.0.3800.47"
+WEBVIEW2_URL="https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/${WEBVIEW2_VERSION}/microsoft.web.webview2.${WEBVIEW2_VERSION}.nupkg"
 RELEASE_DIR="release"
 
 # ── vpn_easy ────────────────────────────────────────────────────────────────
@@ -49,6 +51,19 @@ if [[ ! -f "$DEPS_DIR/wintun.dll" ]]; then
   rm -rf "$DEPS_DIR/wintun_tmp" "$DEPS_DIR/wintun.zip"
 fi
 
+# ── WebView2Loader.dll ───────────────────────────────────────────────────────
+if [[ ! -f "$DEPS_DIR/WebView2Loader.dll" ]]; then
+  echo "==> Downloading WebView2Loader.dll..."
+  curl -sSL "$WEBVIEW2_URL" -o "$DEPS_DIR/webview2.nupkg"
+  python3 -c "
+import zipfile, sys
+z = zipfile.ZipFile('$DEPS_DIR/webview2.nupkg')
+data = z.read('runtimes/win-x64/native/WebView2Loader.dll')
+open('$DEPS_DIR/WebView2Loader.dll', 'wb').write(data)
+"
+  rm "$DEPS_DIR/webview2.nupkg"
+fi
+
 # ── Frontend ─────────────────────────────────────────────────────────────────
 echo "==> Building frontend..."
 (cd ui && npm ci --silent && npm run build)
@@ -64,8 +79,9 @@ mkdir -p "$RELEASE_DIR"
 cp target/x86_64-pc-windows-gnu/release/trusttunnel-service.exe   "$RELEASE_DIR/"
 cp target/x86_64-pc-windows-gnu/release/trusttunnel.exe           "$RELEASE_DIR/"
 cp target/x86_64-pc-windows-gnu/release/trusttunnel-installer.exe "$RELEASE_DIR/"
-cp "$DEPS_DIR/vpn_easy.dll"  "$RELEASE_DIR/"
-cp "$DEPS_DIR/wintun.dll"    "$RELEASE_DIR/"
+cp "$DEPS_DIR/vpn_easy.dll"         "$RELEASE_DIR/"
+cp "$DEPS_DIR/wintun.dll"           "$RELEASE_DIR/"
+cp "$DEPS_DIR/WebView2Loader.dll"   "$RELEASE_DIR/"
 
 echo ""
 echo "Release directory: $RELEASE_DIR/"

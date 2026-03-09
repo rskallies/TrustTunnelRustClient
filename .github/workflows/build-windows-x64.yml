@@ -39,6 +39,15 @@ jobs:
           Invoke-WebRequest -Uri https://www.wintun.net/builds/wintun-0.14.1.zip -OutFile wintun.zip
           Expand-Archive -Path wintun.zip -DestinationPath wintun_tmp
 
+      # ── WebView2Loader.dll ───────────────────────────────────────────────────
+      - name: Download WebView2Loader.dll (x64)
+        run: |
+          $ver = "1.0.3800.47"
+          $url = "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/$ver/microsoft.web.webview2.$ver.nupkg"
+          Invoke-WebRequest -Uri $url -OutFile webview2.zip
+          Expand-Archive -Path webview2.zip -DestinationPath webview2_tmp
+          Copy-Item webview2_tmp/runtimes/win-x64/native/WebView2Loader.dll WebView2Loader.dll
+
       # ── Rust toolchain ───────────────────────────────────────────────────────
       - name: Set up Rust (stable x64)
         uses: dtolnay/rust-toolchain@stable
@@ -96,6 +105,7 @@ jobs:
           Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel-installer.exe  release/
           Copy-Item vpn_easy_tmp/vpn_easy.dll                                         release/
           Copy-Item wintun_tmp/wintun/bin/amd64/wintun.dll                            release/
+          Copy-Item WebView2Loader.dll                                                 release/
 
       # ── Artifacts ────────────────────────────────────────────────────────────
       - name: Upload release artifact

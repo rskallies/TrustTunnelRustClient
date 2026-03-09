@@ -17,6 +17,7 @@ const BUNDLED_FILES: &[&str] = &[
     "trusttunnel.exe",
     "vpn_easy.dll",
     "wintun.dll",
+    "WebView2Loader.dll",
 ];
 
 /// Returns `%ProgramFiles%\TrustTunnel`.

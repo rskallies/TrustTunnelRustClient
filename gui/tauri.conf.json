@@ -32,6 +32,9 @@
     "icon": [
       "icons/icon.ico",
       "icons/tray_icon.png"
-    ]
+    ],
+    "windows": {
+      "webviewInstallMode": { "type": "skip" }
+    }
   }
 }
