@@ -7,6 +7,9 @@ edition.workspace = true
 name = "trusttunnel-installer"
 path = "src/main.rs"
 
+[build-dependencies]
+winres = "0.1"
+
 [dependencies]
 thiserror      = { workspace = true }
 windows-service = "0.7"

@@ -6,7 +6,7 @@
 //!   trusttunnel-installer.exe install    -- install files + register + start service
 //!   trusttunnel-installer.exe uninstall  -- stop + delete service + remove files
 
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Always use the console subsystem so the user sees output and errors.
 
 mod error;
 mod files;
@@ -20,18 +20,29 @@ fn main() {
     let action = env::args().nth(1).unwrap_or_default();
 
     let result = match action.as_str() {
-        "install"   => install(),
-        "uninstall" => uninstall(),
+        "install" | "" => install(),
+        "uninstall"    => uninstall(),
         _ => {
-            eprintln!("Usage: trusttunnel-installer.exe <install|uninstall>");
+            eprintln!("Usage: trusttunnel-installer.exe [install|uninstall]");
+            eprintln!("       install is the default when run without arguments.");
             std::process::exit(1);
         }
     };
 
     if let Err(e) = result {
-        eprintln!("Error: {}", e);
+        eprintln!("\nError: {}", e);
+        pause();
         std::process::exit(1);
     }
+    pause();
+}
+
+fn pause() {
+    use std::io::{self, Write};
+    print!("\nPress Enter to close...");
+    io::stdout().flush().ok();
+    let mut buf = String::new();
+    io::stdin().read_line(&mut buf).ok();
 }
 
 fn install() -> Result<(), InstallerError> {
