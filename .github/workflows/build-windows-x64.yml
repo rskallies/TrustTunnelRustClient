@@ -1,0 +1,105 @@
+name: Build Windows (x64)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: build-windows
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # ── vpn_easy.dll + vpn_easy.lib ─────────────────────────────────────────
+      - name: Download vpn_easy binaries
+        run: |
+          $runId = gh run list `
+            --repo rskallies/TrustTunnelClient `
+            --workflow "Build vpn_easy.dll (Windows x64)" `
+            --status success `
+            --limit 1 `
+            --json databaseId `
+            --jq ".[0].databaseId"
+          Write-Host "Downloading vpn_easy artifacts from run $runId"
+          gh run download $runId `
+            --repo rskallies/TrustTunnelClient `
+            --name vpn_easy-windows-x64 `
+            --dir vpn_easy_tmp
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # ── wintun.dll ───────────────────────────────────────────────────────────
+      - name: Download wintun (x64)
+        run: |
+          Invoke-WebRequest -Uri https://www.wintun.net/builds/wintun-0.14.1.zip -OutFile wintun.zip
+          Expand-Archive -Path wintun.zip -DestinationPath wintun_tmp
+
+      # ── Rust toolchain ───────────────────────────────────────────────────────
+      - name: Set up Rust (stable x64)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cargo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-x64-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-x64-
+
+      # ── Build service ────────────────────────────────────────────────────────
+      - name: Build service
+        run: |
+          cargo build --release --package service --target x86_64-pc-windows-msvc
+        env:
+          VPN_EASY_LIB_DIR: ${{ github.workspace }}/vpn_easy_tmp
+
+      # ── Node / frontend ──────────────────────────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ui
+        run: npm run build
+
+      # ── Build GUI (Tauri) ────────────────────────────────────────────────────
+      - name: Build GUI
+        run: |
+          cargo build --release --package gui --target x86_64-pc-windows-msvc
+        env:
+          VPN_EASY_LIB_DIR: ${{ github.workspace }}/vpn_easy_tmp
+
+      # ── Stage release directory ──────────────────────────────────────────────
+      - name: Stage release files
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel-service.exe release/
+          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel.exe        release/
+          Copy-Item vpn_easy_tmp/vpn_easy.dll                                     release/
+          Copy-Item wintun_tmp/wintun/bin/amd64/wintun.dll                        release/
+
+      # ── Artifacts ────────────────────────────────────────────────────────────
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trusttunnel-rust-windows-x64
+          path: release/
+          retention-days: 30
