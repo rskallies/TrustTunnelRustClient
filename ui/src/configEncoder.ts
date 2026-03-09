@@ -1,7 +1,7 @@
 // Mirrors service/configuration_encoder.dart — converts a Server profile
 // into the TOML string that vpn_easy_start() expects.
 
-import { Server } from "./types";
+import type { Server } from "./types";
 
 export function encodeConfig(server: Server): string {
   const protocol = server.protocol;

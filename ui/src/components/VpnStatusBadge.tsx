@@ -1,4 +1,4 @@
-import { VpnState } from "../types";
+import type { VpnState } from "../types";
 
 const STATE_LABELS: Record<VpnState, string> = {
   idle: "Idle",

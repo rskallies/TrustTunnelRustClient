@@ -1,4 +1,4 @@
-import { Server, VpnState } from "../types";
+import type { Server, VpnState } from "../types";
 
 interface Props {
   servers: Server[];

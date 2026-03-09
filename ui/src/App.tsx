@@ -5,7 +5,7 @@ import { connectVpn, disconnectVpn, getStatus, onServiceEvent } from "./tauriApi
 import { ServerList } from "./components/ServerList";
 import { ServerForm } from "./components/ServerForm";
 import { VpnStatusBadge } from "./components/VpnStatusBadge";
-import { Server } from "./types";
+import type { Server } from "./types";
 
 type View = "servers" | "add" | "edit";
 

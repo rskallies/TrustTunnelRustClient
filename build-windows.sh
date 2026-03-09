@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# Cross-compile for Windows x64 from macOS.
+# Cross-compile for Windows x64 from macOS and stage a release directory.
 #
 # Prerequisites (one-time):
 #   brew install mingw-w64
 #   rustup target add x86_64-pc-windows-gnu
 #
 # Usage:
-#   ./build-windows.sh                    # uses cached vpn_easy in /tmp/vpn_easy_tmp
+#   ./build-windows.sh                    # uses cached artifacts in /tmp/tt-deps
 #   VPN_EASY_LIB_DIR=/path/to/dir ./build-windows.sh
 
 set -euo pipefail
 
-VPN_EASY_LIB_DIR="${VPN_EASY_LIB_DIR:-/tmp/vpn_easy_tmp}"
+DEPS_DIR="${VPN_EASY_LIB_DIR:-/tmp/tt-deps}"
+WINTUN_URL="https://www.wintun.net/builds/wintun-0.14.1.zip"
+RELEASE_DIR="release"
 
-# Download vpn_easy if not already present
-if [[ ! -f "$VPN_EASY_LIB_DIR/libvpn_easy.a" ]]; then
+# ── vpn_easy ────────────────────────────────────────────────────────────────
+if [[ ! -f "$DEPS_DIR/libvpn_easy.a" ]]; then
   echo "==> Downloading vpn_easy artifact..."
-  mkdir -p "$VPN_EASY_LIB_DIR"
+  mkdir -p "$DEPS_DIR"
   RUN_ID=$(gh run list \
     --repo rskallies/TrustTunnelClient \
     --workflow "Build vpn_easy.dll (Windows x64)" \
@@ -25,28 +27,46 @@ if [[ ! -f "$VPN_EASY_LIB_DIR/libvpn_easy.a" ]]; then
   gh run download "$RUN_ID" \
     --repo rskallies/TrustTunnelClient \
     --name vpn_easy-windows-x64 \
-    --dir "$VPN_EASY_LIB_DIR"
+    --dir "$DEPS_DIR"
 
   echo "==> Generating MinGW import library..."
-  xcrun nm "$VPN_EASY_LIB_DIR/vpn_easy.lib" 2>/dev/null \
+  xcrun nm "$DEPS_DIR/vpn_easy.lib" 2>/dev/null \
     | grep -E ' T ' | awk '{print $3}' | grep -v '^_imp_' | sed 's/^_//' \
     | { echo "LIBRARY vpn_easy"; echo "EXPORTS"; while read -r sym; do echo "  $sym"; done; } \
-    > "$VPN_EASY_LIB_DIR/vpn_easy.def"
+    > "$DEPS_DIR/vpn_easy.def"
 
   x86_64-w64-mingw32-dlltool \
-    -d "$VPN_EASY_LIB_DIR/vpn_easy.def" \
-    -l "$VPN_EASY_LIB_DIR/libvpn_easy.a"
+    -d "$DEPS_DIR/vpn_easy.def" \
+    -l "$DEPS_DIR/libvpn_easy.a"
 fi
 
+# ── wintun ───────────────────────────────────────────────────────────────────
+if [[ ! -f "$DEPS_DIR/wintun.dll" ]]; then
+  echo "==> Downloading wintun..."
+  curl -sSL "$WINTUN_URL" -o "$DEPS_DIR/wintun.zip"
+  unzip -q "$DEPS_DIR/wintun.zip" -d "$DEPS_DIR/wintun_tmp"
+  cp "$DEPS_DIR/wintun_tmp/wintun/bin/amd64/wintun.dll" "$DEPS_DIR/wintun.dll"
+  rm -rf "$DEPS_DIR/wintun_tmp" "$DEPS_DIR/wintun.zip"
+fi
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
 echo "==> Building frontend..."
 (cd ui && npm ci --silent && npm run build)
 
+# ── Rust ─────────────────────────────────────────────────────────────────────
 echo "==> Building Rust (release)..."
-VPN_EASY_LIB_DIR="$VPN_EASY_LIB_DIR" \
+VPN_EASY_LIB_DIR="$DEPS_DIR" \
   cargo build --release --target x86_64-pc-windows-gnu
 
+# ── Stage release directory ───────────────────────────────────────────────────
+echo "==> Staging release directory..."
+mkdir -p "$RELEASE_DIR"
+cp target/x86_64-pc-windows-gnu/release/trusttunnel-service.exe   "$RELEASE_DIR/"
+cp target/x86_64-pc-windows-gnu/release/trusttunnel.exe           "$RELEASE_DIR/"
+cp target/x86_64-pc-windows-gnu/release/trusttunnel-installer.exe "$RELEASE_DIR/"
+cp "$DEPS_DIR/vpn_easy.dll"  "$RELEASE_DIR/"
+cp "$DEPS_DIR/wintun.dll"    "$RELEASE_DIR/"
+
 echo ""
-echo "Built:"
-ls -lh target/x86_64-pc-windows-gnu/release/trusttunnel-service.exe \
-        target/x86_64-pc-windows-gnu/release/trusttunnel.exe \
-        target/x86_64-pc-windows-gnu/release/trusttunnel-installer.exe
+echo "Release directory: $RELEASE_DIR/"
+ls -lh "$RELEASE_DIR/"

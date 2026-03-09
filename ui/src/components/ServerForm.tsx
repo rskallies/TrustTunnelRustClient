@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
-import { Server, VpnProtocol, defaultServer } from "../types";
+import type { Server } from "../types";
+import { defaultServer } from "../types";
 
 type FormValues = Omit<Server, "id">;
 

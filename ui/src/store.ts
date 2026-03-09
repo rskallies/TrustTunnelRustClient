@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Server, VpnState, defaultServer } from "./types";
+import type { Server, VpnState } from "./types";
 
 interface AppState {
   // VPN runtime state (not persisted)

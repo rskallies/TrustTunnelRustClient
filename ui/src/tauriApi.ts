@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { VpnState, ServiceEvent } from "./types";
+import type { VpnState, ServiceEvent } from "./types";
 
 export async function connectVpn(configToml: string): Promise<VpnState> {
   return invoke<VpnState>("connect", { configToml });
