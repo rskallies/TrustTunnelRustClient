@@ -80,10 +80,10 @@ jobs:
         working-directory: ui
         run: npm run build
 
-      # ── Build GUI (Tauri) ────────────────────────────────────────────────────
-      - name: Build GUI
+      # ── Build GUI + installer ────────────────────────────────────────────────
+      - name: Build GUI and installer
         run: |
-          cargo build --release --package gui --target x86_64-pc-windows-msvc
+          cargo build --release --package gui --package installer --target x86_64-pc-windows-msvc
         env:
           VPN_EASY_LIB_DIR: ${{ github.workspace }}/vpn_easy_tmp
 
@@ -91,10 +91,11 @@ jobs:
       - name: Stage release files
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel-service.exe release/
-          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel.exe        release/
-          Copy-Item vpn_easy_tmp/vpn_easy.dll                                     release/
-          Copy-Item wintun_tmp/wintun/bin/amd64/wintun.dll                        release/
+          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel-service.exe    release/
+          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel.exe            release/
+          Copy-Item target/x86_64-pc-windows-msvc/release/trusttunnel-installer.exe  release/
+          Copy-Item vpn_easy_tmp/vpn_easy.dll                                         release/
+          Copy-Item wintun_tmp/wintun/bin/amd64/wintun.dll                            release/
 
       # ── Artifacts ────────────────────────────────────────────────────────────
       - name: Upload release artifact

@@ -48,4 +48,5 @@ VPN_EASY_LIB_DIR="$VPN_EASY_LIB_DIR" \
 echo ""
 echo "Built:"
 ls -lh target/x86_64-pc-windows-gnu/release/trusttunnel-service.exe \
-        target/x86_64-pc-windows-gnu/release/trusttunnel.exe
+        target/x86_64-pc-windows-gnu/release/trusttunnel.exe \
+        target/x86_64-pc-windows-gnu/release/trusttunnel-installer.exe

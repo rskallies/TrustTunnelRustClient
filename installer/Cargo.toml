@@ -1,0 +1,18 @@
+[package]
+name    = "installer"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "trusttunnel-installer"
+path = "src/main.rs"
+
+[dependencies]
+thiserror      = { workspace = true }
+windows-service = "0.7"
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_Shell",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+] }

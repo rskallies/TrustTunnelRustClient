@@ -4,6 +4,7 @@ members = [
     "shared",
     "service",
     "gui",
+    "installer",
 ]
 
 [workspace.package]
